@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vòng Quay Gọi Tên - Lucky Draw Pro</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <!-- Google Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&family=Roboto+Mono:wght@500&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+      body {
+        font-family: "Montserrat", sans-serif;
+        background-color: #111827;
+        background-image: radial-gradient(
+            at 0% 0%,
+            rgba(139, 92, 246, 0.3) 0px,
+            transparent 50%
+          ),
+          radial-gradient(
+            at 100% 100%,
+            rgba(236, 72, 153, 0.3) 0px,
+            transparent 50%
+          );
+        background-attachment: fixed;
+        color: white;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow-x: hidden;
+        margin: 0;
+        padding: 20px;
+      }
+
+      /* --- Glassmorphism Container --- */
+      .glass-panel {
+        background: rgba(31, 41, 55, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      }
+
+      /* --- Slot Machine 3D Effects --- */
+      .slot-frame-outer {
+        background: linear-gradient(
+          135deg,
+          #fbbf24 0%,
+          #d97706 50%,
+          #b45309 100%
+        );
+        padding: 15px;
+        border-radius: 24px;
+        box-shadow: 0 0 0 4px #78350f, 0 20px 25px -5px rgba(0, 0, 0, 0.5),
+          inset 0 2px 4px rgba(255, 255, 255, 0.3);
+        position: relative;
+      }
+
+      /* LED Lights Decoration */
+      .led-light {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background-color: #fca5a5;
+        box-shadow: 0 0 5px #ef4444;
+        animation: blink 1s infinite alternate;
+      }
+      .led-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+        padding: 8px;
+        display: flex;
+        justify-content: space-between;
+      }
+      .led-row {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        width: 100%;
+      }
+
+      @keyframes blink {
+        from {
+          background-color: #7f1d1d;
+          box-shadow: 0 0 0 transparent;
+        }
+        to {
+          background-color: #fca5a5;
+          box-shadow: 0 0 10px #f87171;
+        }
+      }
+
+      .slot-window {
+        background-color: #000;
+        border-radius: 12px;
+        border: 4px solid #4b5563;
+        padding: 15px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        min-height: 140px;
+        box-shadow: inset 0 10px 20px rgba(0, 0, 0, 0.8);
+        overflow-x: auto;
+        overflow-y: hidden;
+        position: relative;
+      }
+
+      .slot-window::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+          180deg,
+          rgba(0, 0, 0, 0.6) 0%,
+          rgba(0, 0, 0, 0) 20%,
+          rgba(0, 0, 0, 0) 80%,
+          rgba(0, 0, 0, 0.6) 100%
+        );
+        pointer-events: none;
+        z-index: 10;
+      }
+
+      .reel-col {
+        min-width: 90px;
+        width: auto;
+        height: 110px;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        position: relative;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        flex-shrink: 0;
+      }
+
+      .reel-strip {
+        width: max-content;
+        min-width: 100%;
+        text-align: center;
+      }
+
+      .reel-item {
+        height: 110px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        font-weight: 900;
+        color: #1f2937;
+        text-transform: uppercase;
+        padding: 0 15px;
+        word-break: normal;
+        white-space: nowrap;
+        line-height: 1.1;
+      }
+
+      /* --- Transitions --- */
+      .layout-transition {
+        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .settings-panel {
+        overflow: hidden;
+        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        max-width: 400px;
+        opacity: 1;
+      }
+
+      .settings-collapsed {
+        max-width: 0;
+        opacity: 0;
+        padding: 0;
+        margin: 0;
+        border: none;
+      }
+
+      /* Class Buttons Grid */
+      .class-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 0.5rem;
+        max-height: 200px;
+        overflow-y: auto;
+        padding-right: 5px;
+      }
+
+      .class-btn {
+        background: #374151;
+        color: #e5e7eb;
+        padding: 8px;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: bold;
+        text-align: center;
+        transition: all 0.2s;
+        border: 1px solid #4b5563;
+      }
+      .class-btn:hover {
+        background: #4b5563;
+        transform: translateY(-1px);
+      }
+      .class-btn.active {
+        background: #2563eb;
+        color: white;
+        border-color: #60a5fa;
+        box-shadow: 0 0 10px rgba(37, 99, 235, 0.5);
+      }
+
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #1f2937;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #4b5563;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #6b7280;
+      }
+
+      input[type="range"] {
+        -webkit-appearance: none;
+        background: transparent;
+      }
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        height: 20px;
+        width: 20px;
+        border-radius: 50%;
+        background: #3b82f6;
+        margin-top: -8px;
+        cursor: pointer;
+        box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+      }
+      input[type="range"]::-webkit-slider-runnable-track {
+        width: 100%;
+        height: 4px;
+        background: #4b5563;
+        border-radius: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Main Wrapper -->
+    <div
+      class="w-full max-w-7xl flex flex-col md:flex-row gap-6 relative layout-transition items-stretch"
+      id="mainContainer"
+    >
+      <!-- Toggle Button (Floating when collapsed) -->
+      <button
+        onclick="toggleSettings()"
+        id="expandBtn"
+        class="hidden absolute top-0 left-0 z-20 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 transition transform hover:scale-110"
+        title="Mở cài đặt"
+      >
+        <i class="fa-solid fa-gear fa-lg"></i>
+      </button>
+
+      <!-- SETTINGS PANEL (Left) -->
+      <div
+        id="settingsPanel"
+        class="settings-panel w-full md:w-1/3 glass-panel rounded-2xl flex flex-col"
+      >
+        <div class="p-6 flex-grow overflow-y-auto">
+          <div class="flex justify-between items-center mb-6">
+            <h2
+              class="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400"
+            >
+              <i class="fa-solid fa-sliders"></i> Cấu hình
+            </h2>
+            <button
+              onclick="toggleSettings()"
+              class="text-gray-400 hover:text-white transition"
+              title="Thu gọn"
+            >
+              <i class="fa-solid fa-chevron-left"></i>
+            </button>
+          </div>
+
+          <!-- Tabs Navigation -->
+          <div class="flex bg-gray-800 p-1 rounded-xl mb-6 text-xs md:text-sm">
+            <button
+              onclick="switchTab('manual')"
+              id="btn-manual"
+              class="flex-1 py-2 rounded-lg font-bold bg-blue-600 shadow-md transition-all"
+            >
+              Nhập tay
+            </button>
+            <button
+              onclick="switchTab('sheet')"
+              id="btn-sheet"
+              class="flex-1 py-2 rounded-lg font-bold text-gray-400 hover:text-white transition-all"
+            >
+              1 Lớp
+            </button>
+            <button
+              onclick="switchTab('classes')"
+              id="btn-classes"
+              class="flex-1 py-2 rounded-lg font-bold text-gray-400 hover:text-white transition-all"
+            >
+              QL Lớp
+            </button>
+          </div>
+
+          <!-- Tab 1: Manual Input -->
+          <div id="tab-manual" class="tab-content active mb-4">
+            <textarea
+              id="manualInput"
+              rows="8"
+              class="w-full bg-gray-900 border border-gray-700 rounded-xl p-4 text-sm focus:border-blue-500 transition resize-none"
+              placeholder="Nhập tên học sinh (mỗi dòng một tên)..."
+            ></textarea>
+            <div class="flex justify-between mt-2 text-xs text-gray-500">
+              <span>Tự động lưu vào bộ nhớ</span>
+              <span id="manualCount" class="text-blue-400 font-bold"
+                >0 học sinh</span
+              >
+            </div>
+          </div>
+
+          <!-- Tab 2: Single Sheet Input -->
+          <div id="tab-sheet" class="tab-content hidden mb-4">
+            <input
+              type="text"
+              id="sheetUrl"
+              class="w-full bg-gray-900 border border-gray-700 rounded-xl p-4 text-sm mb-3 focus:border-green-500 transition"
+              placeholder="Dán link Google Sheet lớp..."
+            />
+            <button
+              onclick="loadFromSingleSheet()"
+              class="w-full py-3 bg-green-600 hover:bg-green-700 rounded-xl font-bold transition shadow-lg flex justify-center items-center gap-2 group"
+            >
+              <i
+                class="fa-solid fa-cloud-arrow-down group-hover:-translate-y-1 transition"
+              ></i>
+              Tải dữ liệu
+              <span id="sheetLoading" class="hidden animate-spin ml-2"
+                ><i class="fa-solid fa-circle-notch"></i
+              ></span>
+            </button>
+            <p class="text-xs text-gray-500 mt-3 text-center">
+              Yêu cầu: Sheet Công khai. Lấy dữ liệu cột A.
+            </p>
+          </div>
+
+          <!-- Tab 3: Class Manager (Master Sheet) -->
+          <div id="tab-classes" class="tab-content hidden mb-4">
+            <div class="mb-3">
+              <label class="text-xs text-gray-400 mb-1 block"
+                >Link Master Sheet (Cột A: Tên Lớp, Cột B: Link Data
+                Lớp):</label
+              >
+              <div class="flex gap-2">
+                <input
+                  type="text"
+                  id="masterSheetUrl"
+                  class="flex-1 bg-gray-900 border border-gray-700 rounded-lg p-2 text-sm focus:border-purple-500 transition"
+                  placeholder="Dán link Sheet tổng..."
+                />
+                <button
+                  onclick="loadMasterSheet()"
+                  class="bg-purple-600 hover:bg-purple-700 px-3 rounded-lg text-white font-bold transition"
+                  title="Tải danh sách lớp"
+                >
+                  <i class="fa-solid fa-sync"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="mb-2 flex justify-between items-end">
+              <span class="text-xs text-gray-300 font-bold"
+                >Danh sách lớp:</span
+              >
+              <button
+                onclick="clearClasses()"
+                class="text-[10px] text-red-400 hover:text-red-300 underline"
+              >
+                Xóa hết
+              </button>
+            </div>
+
+            <!-- Class Buttons Container -->
+            <div
+              id="classButtonsContainer"
+              class="class-grid bg-gray-900/50 p-2 rounded-xl border border-gray-700 min-h-[100px]"
+            >
+              <div
+                class="col-span-full text-center text-gray-500 text-xs py-4 italic"
+              >
+                Chưa có lớp. Nhập link master sheet để tải.
+              </div>
+            </div>
+          </div>
+
+          <!-- Speed Control -->
+          <div
+            class="bg-gray-800/50 p-4 rounded-xl border border-gray-700 mt-4"
+          >
+            <div class="flex justify-between mb-2">
+              <span class="text-sm font-bold text-gray-300">Tốc độ quay</span>
+              <span class="text-xs text-blue-400 font-mono" id="speedLabel"
+                >1.0x</span
+              >
+            </div>
+            <input
+              type="range"
+              id="speedRange"
+              min="0.5"
+              max="2.5"
+              step="0.5"
+              value="1"
+              oninput="updateSpeedLabel(this.value)"
+            />
+            <div
+              class="flex justify-between text-[10px] text-gray-500 mt-1 uppercase font-bold tracking-wider"
+            >
+              <span>Nhanh</span>
+              <span>Chuẩn</span>
+              <span>Chậm</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer Stats -->
+        <div class="p-4 border-t border-gray-700 bg-gray-800/80">
+          <div class="flex justify-between items-center text-sm text-gray-400">
+            <div class="flex flex-col">
+              <span class="text-[10px] uppercase text-gray-500 font-bold"
+                >Lớp đang chọn:</span
+              >
+              <span
+                id="currentClassDisplay"
+                class="font-bold text-yellow-400 truncate max-w-[150px]"
+                >Chưa chọn</span
+              >
+            </div>
+            <span
+              id="totalStudents"
+              class="text-white font-bold bg-gray-700 px-3 py-1 rounded-lg shadow"
+              >0 HS</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <!-- GAME AREA (Center/Right) -->
+      <div
+        class="flex-grow flex flex-col justify-center items-center relative layout-transition"
+        id="gameArea"
+      >
+        <!-- Header (Logo) -->
+        <div class="text-center mb-8 relative z-10">
+          <h1
+            class="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 to-yellow-600 drop-shadow-lg tracking-tight uppercase"
+            style="text-shadow: 0 4px 0 #92400e"
+          >
+            LUCKY STAR
+          </h1>
+          <div
+            class="mt-2 inline-block px-4 py-1 bg-yellow-900/50 rounded-full border border-yellow-700/50"
+          >
+            <p
+              id="mainHeaderSub"
+              class="text-yellow-400 text-xs font-bold tracking-[0.2em] uppercase"
+            >
+              Student Selector System
+            </p>
+          </div>
+        </div>
+
+        <!-- THE MACHINE -->
+        <div
+          class="slot-frame-outer w-full max-w-4xl mx-auto transform transition hover:scale-[1.01] duration-500"
+        >
+          <!-- Decorative LEDs -->
+          <div class="led-container">
+            <div
+              class="led-row top-0 absolute w-full flex justify-between px-4 -mt-1.5"
+            >
+              <div class="led-light"></div>
+              <div class="led-light"></div>
+              <div class="led-light"></div>
+              <div class="led-light"></div>
+              <div class="led-light"></div>
+            </div>
+            <div
+              class="led-row bottom-0 absolute w-full flex justify-between px-4 -mb-1.5"
+            >
+              <div class="led-light" style="animation-delay: 0.5s"></div>
+              <div class="led-light" style="animation-delay: 0.5s"></div>
+              <div class="led-light" style="animation-delay: 0.5s"></div>
+              <div class="led-light" style="animation-delay: 0.5s"></div>
+              <div class="led-light" style="animation-delay: 0.5s"></div>
+            </div>
+          </div>
+
+          <!-- Window -->
+          <div class="slot-window" id="slotContainer">
+            <div class="text-gray-500 font-mono text-sm animate-pulse">
+              SẴN SÀNG KHỞI ĐỘNG...
+            </div>
+          </div>
+
+          <!-- Lever / Button -->
+          <div class="mt-6 flex justify-center">
+            <button
+              id="spinBtn"
+              onclick="spin()"
+              disabled
+              class="group relative inline-flex items-center justify-center px-10 py-4 text-2xl font-black text-white transition-all duration-200 bg-gradient-to-r from-red-600 to-red-500 rounded-full shadow-[0_10px_0_rgb(153,27,27)] active:shadow-[0_4px_0_rgb(153,27,27)] active:translate-y-[6px] hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:translate-y-2"
+            >
+              <span class="mr-3"><i class="fa-solid fa-play"></i></span>
+              <span id="btnText">QUAY NGAY</span>
+              <div
+                class="absolute inset-0 rounded-full bg-gradient-to-t from-transparent to-white/20 pointer-events-none"
+              ></div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Result Overlay -->
+        <div
+          id="resultBoard"
+          class="mt-8 text-center opacity-0 transform translate-y-4 transition-all duration-700 ease-out"
+        >
+          <div
+            class="inline-block bg-black/40 backdrop-blur-md border border-yellow-500/30 p-6 rounded-2xl shadow-2xl relative overflow-hidden"
+          >
+            <div
+              class="absolute inset-0 bg-gradient-to-r from-transparent via-yellow-500/10 to-transparent animate-pulse"
+            ></div>
+            <p
+              class="text-blue-300 text-sm font-bold uppercase tracking-widest mb-1"
+            >
+              Người được chọn
+            </p>
+            <div
+              id="winnerName"
+              class="text-4xl md:text-5xl font-black text-white drop-shadow-[0_0_10px_rgba(234,179,8,0.8)]"
+            >
+              ---
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOGIC SCRIPT -->
+    <script>
+      // --- CONSTANTS & STATE ---
+      const LS_KEYS = {
+        MODE: "lucky_mode",
+        MANUAL_DATA: "lucky_manual_data",
+        SINGLE_SHEET_URL: "lucky_single_sheet_url",
+        MASTER_SHEET_URL: "lucky_master_sheet_url",
+        CLASSES_LIST: "lucky_classes_list",
+        CURRENT_CLASS_NAME: "lucky_current_class_name",
+        CURRENT_STUDENT_LIST: "lucky_current_student_list",
+      };
+
+      let studentList = [];
+      let isSpinning = false;
+      let classList = []; // Array of { name, url }
+      let currentMode = "manual"; // 'manual', 'sheet', 'classes'
+
+      // DOM Elements
+      const slotContainer = document.getElementById("slotContainer");
+      const manualInput = document.getElementById("manualInput");
+      const totalStudentsEl = document.getElementById("totalStudents");
+      const currentClassDisplay = document.getElementById(
+        "currentClassDisplay"
+      );
+      const mainHeaderSub = document.getElementById("mainHeaderSub");
+      const spinBtn = document.getElementById("spinBtn");
+      const btnText = document.getElementById("btnText");
+      const manualCountEl = document.getElementById("manualCount");
+      const classButtonsContainer = document.getElementById(
+        "classButtonsContainer"
+      );
+
+      // --- INITIALIZATION ---
+      window.onload = function () {
+        loadSettingsFromStorage();
+      };
+
+      function loadSettingsFromStorage() {
+        // Load Manual Data
+        const savedManual = localStorage.getItem(LS_KEYS.MANUAL_DATA);
+        if (savedManual) {
+          manualInput.value = savedManual;
+        }
+
+        // Load URLs
+        document.getElementById("sheetUrl").value =
+          localStorage.getItem(LS_KEYS.SINGLE_SHEET_URL) || "";
+        document.getElementById("masterSheetUrl").value =
+          localStorage.getItem(LS_KEYS.MASTER_SHEET_URL) || "";
+
+        // Load Classes List
+        const savedClasses = localStorage.getItem(LS_KEYS.CLASSES_LIST);
+        if (savedClasses) {
+          classList = JSON.parse(savedClasses);
+          renderClassButtons();
+        }
+
+        // Load Last Mode
+        const savedMode = localStorage.getItem(LS_KEYS.MODE) || "manual";
+        switchTab(savedMode);
+
+        // Load Last Student List (Persistence)
+        const savedStudentList = localStorage.getItem(
+          LS_KEYS.CURRENT_STUDENT_LIST
+        );
+        const savedClassName =
+          localStorage.getItem(LS_KEYS.CURRENT_CLASS_NAME) || "Danh sách lưu";
+
+        if (savedStudentList) {
+          try {
+            studentList = JSON.parse(savedStudentList);
+            updateUIState(savedClassName);
+          } catch (e) {
+            console.error("Error loading saved list", e);
+          }
+        } else {
+          if (savedMode === "manual" && savedManual) {
+            updateDataFromManual();
+          }
+        }
+      }
+
+      // --- LOCAL STORAGE HELPERS ---
+      function saveToLS(key, value) {
+        localStorage.setItem(key, value);
+      }
+
+      // --- UI LOGIC ---
+      function toggleSettings() {
+        const panel = document.getElementById("settingsPanel");
+        const expandBtn = document.getElementById("expandBtn");
+
+        if (panel.classList.contains("settings-collapsed")) {
+          panel.classList.remove("settings-collapsed");
+          expandBtn.classList.add("hidden");
+        } else {
+          panel.classList.add("settings-collapsed");
+          setTimeout(() => expandBtn.classList.remove("hidden"), 400);
+        }
+      }
+
+      function updateSpeedLabel(val) {
+        const label = document.getElementById("speedLabel");
+        const texts = {
+          0.5: "Nhanh (0.5x)",
+          1: "Chuẩn (1.0x)",
+          1.5: "Chậm (1.5x)",
+          2: "Rất chậm (2.0x)",
+          2.5: "Rùa bò (2.5x)",
+        };
+        label.innerText = texts[val] || "Chuẩn";
+      }
+
+      function switchTab(tab) {
+        currentMode = tab;
+        saveToLS(LS_KEYS.MODE, tab);
+
+        document
+          .querySelectorAll(".tab-content")
+          .forEach((el) => el.classList.add("hidden"));
+        document.getElementById(`tab-${tab}`).classList.remove("hidden");
+
+        ["btn-manual", "btn-sheet", "btn-classes"].forEach((id) => {
+          const btn = document.getElementById(id);
+          btn.classList.replace("text-white", "text-gray-400");
+          btn.classList.replace("bg-blue-600", "bg-transparent");
+          btn.classList.remove("shadow-md");
+        });
+
+        const activeBtn = document.getElementById(`btn-${tab}`);
+        activeBtn.classList.replace("text-gray-400", "text-white");
+        activeBtn.classList.replace("bg-transparent", "bg-blue-600");
+        activeBtn.classList.add("shadow-md");
+
+        if (tab === "manual") updateDataFromManual();
+      }
+
+      // --- DATA LOGIC: MANUAL ---
+      manualInput.addEventListener("input", () => {
+        saveToLS(LS_KEYS.MANUAL_DATA, manualInput.value);
+        if (currentMode === "manual") updateDataFromManual();
+      });
+
+      function updateDataFromManual() {
+        const text = manualInput.value;
+        const lines = text
+          .split("\n")
+          .map((l) => l.trim())
+          .filter((l) => l.length > 0);
+        studentList = lines;
+        saveToLS(LS_KEYS.CURRENT_STUDENT_LIST, JSON.stringify(studentList));
+        saveToLS(LS_KEYS.CURRENT_CLASS_NAME, "Danh sách nhập tay");
+        updateUIState("Danh sách nhập tay");
+      }
+
+      // --- DATA LOGIC: SINGLE SHEET ---
+      async function loadFromSingleSheet() {
+        const url = document.getElementById("sheetUrl").value.trim();
+        if (!url) {
+          alert("Vui lòng nhập link!");
+          return;
+        }
+
+        saveToLS(LS_KEYS.SINGLE_SHEET_URL, url);
+        const loading = document.getElementById("sheetLoading");
+        loading.classList.remove("hidden");
+
+        // Mode "Single" thì không yêu cầu cột B
+        const data = await fetchGvizData(url, 0, false);
+        loading.classList.add("hidden");
+
+        if (data) {
+          studentList = data;
+          saveToLS(LS_KEYS.CURRENT_STUDENT_LIST, JSON.stringify(studentList));
+          saveToLS(LS_KEYS.CURRENT_CLASS_NAME, "1 Lớp (Link)");
+          alert(`Đã tải ${data.length} học sinh!`);
+          updateUIState("1 Lớp (Link)");
+          toggleSettings();
+        }
+      }
+
+      // --- DATA LOGIC: MASTER SHEET (QL LỚP) ---
+      async function loadMasterSheet() {
+        const url = document.getElementById("masterSheetUrl").value.trim();
+        if (!url) {
+          alert("Vui lòng nhập Link Master Sheet!");
+          return;
+        }
+
+        saveToLS(LS_KEYS.MASTER_SHEET_URL, url);
+        const btnIcon = document.querySelector("#tab-classes i.fa-sync");
+        btnIcon.classList.add("fa-spin");
+
+        try {
+          // Tải Sheet Tổng: Mode "Master" có yêu cầu cột B
+          const sheetId = extractSheetId(url);
+          const gid = extractGid(url);
+          if (!sheetId) throw new Error("Link Master Sheet không hợp lệ");
+
+          // Thêm headers=1 để đảm bảo hàng đầu được xử lý là header
+          let gvizUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&headers=1`;
+          if (gid) gvizUrl += `&gid=${gid}`;
+
+          const res = await fetch(gvizUrl);
+          const txt = await res.text();
+          const json = JSON.parse(
+            txt.substring(txt.indexOf("{"), txt.lastIndexOf("}") + 1)
+          );
+
+          const newClasses = [];
+          json.table.rows.forEach((row) => {
+            // Kiểm tra xem có đủ dữ liệu Cột A (0) và Cột B (1) không
+            if (row.c && row.c[0] && row.c[1] && row.c[0].v && row.c[1].v) {
+              newClasses.push({
+                name: row.c[0].v.toString().trim(),
+                url: row.c[1].v.toString().trim(),
+              });
+            }
+          });
+
+          if (newClasses.length === 0) {
+            alert(
+              "Không tìm thấy dữ liệu. Hãy đảm bảo Cột A là Tên Lớp, Cột B là Link."
+            );
+          } else {
+            classList = newClasses;
+            saveToLS(LS_KEYS.CLASSES_LIST, JSON.stringify(classList));
+            renderClassButtons();
+            alert(`Đã tìm thấy ${newClasses.length} lớp!`);
+          }
+        } catch (e) {
+          console.error(e);
+          alert("Lỗi tải Master Sheet: " + e.message);
+        } finally {
+          btnIcon.classList.remove("fa-spin");
+        }
+      }
+
+      function renderClassButtons() {
+        classButtonsContainer.innerHTML = "";
+        if (classList.length === 0) {
+          classButtonsContainer.innerHTML =
+            '<div class="col-span-full text-center text-gray-500 text-xs py-4 italic">Chưa có lớp nào. Hãy nhập Master Link.</div>';
+          return;
+        }
+
+        classList.forEach((cls) => {
+          const btn = document.createElement("button");
+          btn.className = "class-btn";
+          btn.innerText = cls.name;
+          btn.title = "Bấm để tải danh sách lớp " + cls.name;
+          btn.onclick = () => loadClassStudents(cls);
+          classButtonsContainer.appendChild(btn);
+        });
+      }
+
+      async function loadClassStudents(classObj) {
+        document
+          .querySelectorAll(".class-btn")
+          .forEach((b) => b.classList.remove("active"));
+        event.target.classList.add("active");
+
+        const loading = document.createElement("div");
+        loading.className =
+          "absolute inset-0 bg-black/60 flex flex-col items-center justify-center rounded-xl z-50";
+        loading.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-white text-3xl mb-2"></i><span class="text-white text-xs font-bold">Đang tải ${classObj.name}...</span>`;
+        document.getElementById("settingsPanel").appendChild(loading);
+
+        // Tải chi tiết lớp: Không bắt buộc Cột B
+        const data = await fetchGvizData(classObj.url, 0, false);
+        loading.remove();
+
+        if (data) {
+          studentList = data;
+          saveToLS(LS_KEYS.CURRENT_STUDENT_LIST, JSON.stringify(studentList));
+          saveToLS(LS_KEYS.CURRENT_CLASS_NAME, classObj.name);
+
+          updateUIState(classObj.name);
+          if (
+            window.innerWidth < 768 &&
+            !document
+              .getElementById("settingsPanel")
+              .classList.contains("settings-collapsed")
+          ) {
+            toggleSettings();
+          }
+        }
+      }
+
+      function clearClasses() {
+        if (confirm("Xóa danh sách lớp đã lưu?")) {
+          classList = [];
+          localStorage.removeItem(LS_KEYS.CLASSES_LIST);
+          renderClassButtons();
+        }
+      }
+
+      // --- CORE HELPER: FETCH GVIZ (FIXED) ---
+      function extractSheetId(url) {
+        const regex = /\/d\/([a-zA-Z0-9-_]+)/;
+        const match = url.match(regex);
+        return match && match[1] ? match[1] : null;
+      }
+
+      // Trích xuất GID (Tab ID) để lấy đúng sheet con
+      function extractGid(url) {
+        const regex = /[?&#]gid=([0-9]+)/;
+        const match = url.match(regex);
+        return match && match[1] ? match[1] : null;
+      }
+
+      async function fetchGvizData(url, colIndex, isMasterMode = false) {
+        try {
+          const sheetId = extractSheetId(url);
+          const gid = extractGid(url); // Lấy thêm GID
+
+          if (!sheetId) throw new Error("Link không hợp lệ");
+
+          // Thêm headers=1 để báo cho Gviz biết dòng 1 là tiêu đề, nó sẽ tự động tách ra khỏi table.rows
+          let gvizUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&headers=1`;
+          if (gid) {
+            gvizUrl += `&gid=${gid}`;
+          }
+
+          const res = await fetch(gvizUrl);
+          if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+
+          const txt = await res.text();
+          const jsonString = txt.substring(
+            txt.indexOf("{"),
+            txt.lastIndexOf("}") + 1
+          );
+          const json = JSON.parse(jsonString);
+
+          if (json.status === "error")
+            throw new Error(
+              "Lỗi từ Google: " + json.errors[0].detailed_message
+            );
+
+          const list = [];
+          json.table.rows.forEach((row) => {
+            if (row.c && row.c[colIndex] && row.c[colIndex].v) {
+              list.push(row.c[colIndex].v.toString().trim());
+            }
+          });
+
+          // --- XỬ LÝ LỌC THỦ CÔNG ---
+          // Nếu headers=1 không hoạt động hoặc sheet không đúng chuẩn Gviz header
+          // Ta kiểm tra thủ công phần tử đầu tiên
+          if (list.length > 0) {
+            const first = list[0].toLowerCase();
+            const invalidHeaders = [
+              "tên học sinh",
+              "họ và tên",
+              "họ tên",
+              "name",
+              "student name",
+              "tên",
+              "stt",
+              "full name",
+            ];
+
+            if (
+              invalidHeaders.some(
+                (header) => first === header || first.includes(header)
+              )
+            ) {
+              console.log("Đã loại bỏ tiêu đề thủ công:", list[0]);
+              list.shift(); // Xóa phần tử đầu
+            }
+          }
+
+          if (list.length === 0)
+            throw new Error("Sheet rỗng hoặc không có dữ liệu ở cột A");
+          return list;
+        } catch (e) {
+          console.error(e);
+          // Thông báo lỗi tùy ngữ cảnh
+          let msg = `Lỗi tải dữ liệu: ${e.message}`;
+          if (isMasterMode) {
+            msg += "\n\nHãy đảm bảo Link trong Cột B đúng cấu trúc.";
+          } else {
+            msg += "\n\nHãy kiểm tra Link và quyền truy cập (Công khai).";
+          }
+          alert(msg);
+          return null;
+        }
+      }
+
+      // --- GAME UI UPDATES ---
+      function updateUIState(classNameOverride) {
+        const count = studentList.length;
+        totalStudentsEl.innerText = `${count} HS`;
+        manualCountEl.innerText = `${count} học sinh`;
+
+        const name = classNameOverride || "Chưa chọn lớp";
+        currentClassDisplay.innerText = name;
+        mainHeaderSub.innerText = name.toUpperCase();
+
+        if (count > 0) {
+          spinBtn.disabled = false;
+          btnText.innerText = "QUAY NGAY";
+          if (!isSpinning && slotContainer.children.length <= 1) {
+            initReels();
+          }
+        } else {
+          spinBtn.disabled = true;
+          btnText.innerText = "CHƯA CÓ DATA";
+          slotContainer.innerHTML =
+            '<div class="text-gray-500 font-mono text-sm">CHỜ DỮ LIỆU...</div>';
+        }
+      }
+
+      // --- SLOT MACHINE ENGINE ---
+      function getMaxWords() {
+        let max = 0;
+        studentList.forEach((n) => {
+          const c = n.split(/\s+/).length;
+          if (c > max) max = c;
+        });
+        return Math.min(Math.max(max, 3), 5);
+      }
+
+      function initReels() {
+        slotContainer.innerHTML = "";
+        const count = getMaxWords();
+        for (let i = 0; i < count; i++) {
+          const col = document.createElement("div");
+          col.className = "reel-col";
+          col.innerHTML =
+            '<div class="reel-item text-4xl text-gray-300">?</div>';
+          slotContainer.appendChild(col);
+        }
+      }
+
+      function spin() {
+        if (isSpinning || studentList.length === 0) return;
+
+        isSpinning = true;
+        spinBtn.disabled = true;
+        document
+          .getElementById("resultBoard")
+          .classList.remove("opacity-100", "translate-y-0");
+        document
+          .getElementById("resultBoard")
+          .classList.add("opacity-0", "translate-y-4");
+
+        const speedFactor = parseFloat(
+          document.getElementById("speedRange").value
+        );
+
+        const winner =
+          studentList[Math.floor(Math.random() * studentList.length)];
+        const words = winner.split(/\s+/);
+        const maxCols = getMaxWords();
+
+        const displayWords = [];
+        const emptySpace = maxCols - words.length;
+        const padLeft = Math.floor(emptySpace / 2);
+
+        for (let i = 0; i < maxCols; i++) {
+          if (i < padLeft || i >= padLeft + words.length) displayWords.push("");
+          else displayWords.push(words[i - padLeft]);
+        }
+
+        slotContainer.innerHTML = "";
+        const reels = [];
+
+        for (let i = 0; i < maxCols; i++) {
+          const col = document.createElement("div");
+          col.className = "reel-col";
+          const strip = document.createElement("div");
+          strip.className = "reel-strip";
+
+          const loopCount = 20 + i * 6;
+          for (let k = 0; k < loopCount; k++) {
+            const rName =
+              studentList[Math.floor(Math.random() * studentList.length)];
+            const rWord = rName.split(/\s+/)[0];
+            const item = document.createElement("div");
+            item.className = "reel-item filter blur-[1px] text-gray-400";
+            item.innerText = rWord;
+            strip.appendChild(item);
+          }
+
+          const winItem = document.createElement("div");
+          winItem.className = "reel-item text-gray-800 scale-110 font-black";
+          winItem.innerText = displayWords[i];
+          if (displayWords[i]) winItem.style.color = "#000";
+
+          strip.appendChild(winItem);
+          col.appendChild(strip);
+          slotContainer.appendChild(col);
+
+          reels.push({ el: strip, count: loopCount + 1 });
+        }
+
+        const itemHeight = 110;
+        let maxTime = 0;
+
+        reels.forEach((r, idx) => {
+          r.el.style.transform = `translateY(0px)`;
+          void r.el.offsetWidth;
+
+          const target = -((r.count - 1) * itemHeight);
+          const duration = (2.5 + idx * 0.6) * speedFactor;
+          if (duration > maxTime) maxTime = duration;
+
+          setTimeout(() => {
+            r.el.style.transition = `transform ${duration}s cubic-bezier(0.15, 0, 0.15, 1)`;
+            r.el.style.transform = `translateY(${target}px)`;
+          }, 50);
+        });
+
+        setTimeout(() => {
+          isSpinning = false;
+          spinBtn.disabled = false;
+
+          const rb = document.getElementById("resultBoard");
+          document.getElementById("winnerName").innerText = winner;
+          rb.classList.remove("opacity-0", "translate-y-4");
+          rb.classList.add("opacity-100", "translate-y-0");
+
+          confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ["#fbbf24", "#ef4444", "#3b82f6"],
+          });
+          setTimeout(
+            () =>
+              confetti({
+                particleCount: 50,
+                angle: 60,
+                spread: 55,
+                origin: { x: 0 },
+              }),
+            200
+          );
+          setTimeout(
+            () =>
+              confetti({
+                particleCount: 50,
+                angle: 120,
+                spread: 55,
+                origin: { x: 1 },
+              }),
+            200
+          );
+        }, maxTime * 1000 + 200);
+      }
+    </script>
+  </body>
+</html>
